@@ -1,3 +1,0 @@
-PTS=`cat /home/aires/system/ptsfile`
-javadoc -author -private $1 >$PTS 2>$PTS
-
