@@ -1,0 +1,4 @@
+PTS=`cat /home/aires/system/ptsfile`
+make $1 > $PTS 2>$PTS
+echo "" > $PTS
+echo "DarkScript finished" > $PTS

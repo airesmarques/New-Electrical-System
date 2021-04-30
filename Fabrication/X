@@ -1,0 +1,6 @@
+#/tmp_mnt/net/hp064328/mnt3/entwicklung/java/app/fabrication
+#! /usr/bin/ksh
+
+PTS=`cat /home/aires/system/ptsfile`
+java -classpath $CLASSPATH:/${PROJECT}/java/lib/:/${PROJECT}/java/lib/resources:/home/aires/lib/DAutil:/${PROJECT}/java/app/definition updfab epd.txt1 >$PTS 2>$PTS
+

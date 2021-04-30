@@ -1,0 +1,767 @@
+/*
+ About this File:
+	- This files shows the list of wires.
+	- In the beginning of a secsion there are big titles for easy locating each component.
+	- The big titles were made with the banner unix command.
+	
+	This file is to be called by the file updfab.java
+	(c) Aires Marques, Tip2, DASA 1998
+*/
+
+
+
+import com.sun.java.swing.*;
+import java.awt.*;
+import java.lang.*;
+import java.awt.event.*;
+import java.util.*;
+import DAutil.dbase.DBAcc;		// Made in DASA
+import DAutil.utilities;		// Made in DASA
+import DAutil.extract_string;		// (c) Aires Marques
+
+import com.sun.java.swing.table.JTableHeader;
+import com.sun.java.swing.JComboBox;
+
+
+
+public class Fabrication extends com.sun.java.swing.JFrame 
+{
+	final static int HEIGHT=600;
+	final static int WIDTH=800;
+		
+
+	private Vector 		Ft = new Vector();
+	private JPanel 		UpperPanel,
+				ToolBarPanel;
+
+	private utilities	_utils= new utilities();
+	private DBAcc		db = new DBAcc (_utils);
+	private JTable		dbTable;
+		
+	private JScrollPane	ListScroll;
+	private JToolBar	FabricationToolBar;
+		
+	public String 		EffectivityStr;
+	public String 		VersionStr;
+	public String 		PartnameStr;
+	public String 		SubRouteStr;
+	public String 		ProjectStr;
+	
+	JComboBox 		PwEffectCombo,
+				BundleCombo;
+
+	JTextField 		JTF_Wires;
+
+	final public String IconDir="/entwicklung/java/app/resources/icons3d/";
+	
+	GridBagLayout Layout;
+	GridBagConstraints c;
+	
+	final int DATA_FROM_THE_FILE = 1;
+	final int DATA_FROM_DATABASE = 2;
+	
+	static int data_provider;
+
+
+ 	  //
+	 //
+	//
+	private void General_execution_step1() 
+	{
+	 setBackground (Color.lightGray);
+	 this.setSize(WIDTH, HEIGHT);
+	 Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+	 setLocation (100,100);
+	 this.setVisible(true);
+	
+	
+	 // Create Layout and add ToolBar				
+	 Layout = new GridBagLayout();
+	 c = new GridBagConstraints();
+	 this.getContentPane().setLayout(Layout);
+	 ToolBarPanel = new JPanel();
+
+	 ToolBarPanel.setBackground(Color.lightGray);
+	 ToolBarPanel.setLayout(Layout);
+	 c.gridwidth = GridBagConstraints.REMAINDER;			
+	 c.weightx = 1.0;
+	 c.fill = GridBagConstraints.HORIZONTAL;
+	 c.insets = new Insets(5,5,0,5);
+	 ToolBarPanel = addToolBar();
+	 Layout.setConstraints(ToolBarPanel,c);
+	 this.getContentPane().add(ToolBarPanel);
+	 ToolBarPanel.setBorder(BorderFactory.createLineBorder(Color.black));	
+	
+	 // Prepare the Layout and "Stuff" for the next panel
+	 c.fill = GridBagConstraints.HORIZONTAL;
+	 c.weightx=2.0;
+	 c.insets = new Insets(5,5,5,5);
+	}
+	
+	
+	  //
+	 //
+	//
+	private void General_execution_step2() 
+	{
+	
+	 // -- Create the grid with Data -- 	 
+	 dbTable=db.createTable();
+	 ListScroll = new JScrollPane(dbTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, 
+	 			      ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
+
+	 dbTable.setAutoResizeMode (JTable.AUTO_RESIZE_OFF);
+			
+	 SelectData();
+	 	 
+	 ListScroll.setFont(new Font("Dialog", Font.PLAIN, 12));
+	 ListScroll.setForeground(new Color(0));		
+	 dbTable.getTableHeader().setEnabled(false);	
+	
+	 c.gridwidth = GridBagConstraints.REMAINDER;
+	 c.weighty = 1;
+	 c.fill = GridBagConstraints.BOTH;
+	 c.insets = new Insets(0,5,0,5);
+	 
+	 Layout.setConstraints(ListScroll, c);	 
+	 
+	 ListScroll.setBorder(BorderFactory.createLineBorder(Color.black));
+	 ListScroll.setBackground(Color.lightGray);	 
+	 
+	 this.getContentPane().add(ListScroll);
+
+	  // Filling the field with the number of wires in the Table			// Wire fill {{
+	 Integer RowCount = new Integer(dbTable.getRowCount());				// Get the number of Wires
+	 String RowCountStr = new String(RowCount.toString());
+	 JTF_Wires.setText(RowCountStr);						// }} Wire fill
+	 
+	 
+	 addMouseListenerInTable();
+	 
+	 Menus();
+	
+	
+	}
+
+
+
+
+	  // Description: This is the constructor for the List of Wires when 
+	 // there is no data provided. The data from the comboboxes comes from
+	// the database.
+	public Fabrication(String SubRouteStrIn, String ProjectStrIn)
+	{
+	 super(" List Of Wires ");
+	 data_provider=DATA_FROM_DATABASE;
+
+ 	 SubRouteStr	= SubRouteStrIn;
+	 ProjectStr	= ProjectStrIn;	
+	 
+	 General_execution_step1();
+	 
+	 //Create Panel with ComboBox's and Labels and TextFields
+	 UpperPanel = Upper_Panel();
+	 Layout.setConstraints(UpperPanel,c);
+	 this.getContentPane().add(UpperPanel);
+ 
+	 General_execution_step2();
+	 //System.out.println("SubRouteStr:" + SubRouteStr);
+	 //System.out.println("ProjectStr:" + ProjectStr);
+	}
+
+
+
+	  // Description: This is the constructor for the List of Wires when 
+	 // data is provided by the file epd1.txt1
+	//
+	public Fabrication(Vector input_file_stuff)
+	{
+	 super(" List Of Wires ");
+	 data_provider=DATA_FROM_THE_FILE;
+	 
+	  // Grabs and saves the strings from the imput vector for further use
+	 EffectivityStr = new String (input_file_stuff.elementAt(0).toString());
+	 VersionStr 	= new String (input_file_stuff.elementAt(1).toString());
+	 PartnameStr 	= new String (input_file_stuff.elementAt(2).toString());
+	 SubRouteStr 	= new String (input_file_stuff.elementAt(3).toString());
+	 ProjectStr 	= new String (input_file_stuff.elementAt(4).toString());
+	
+	 General_execution_step1();
+	 
+	 // Create Panel with ComboBox's and Labels and TextFields
+	 UpperPanel = Upper_Panel();
+	 Layout.setConstraints(UpperPanel,c);
+	 this.getContentPane().add(UpperPanel);
+ 
+	 General_execution_step2();
+	}
+	
+	
+	
+	
+/*	#    #    #  ######   ####           #####     ##    #    #  ######  #
+	#    ##   #  #       #    #          #    #   #  #   ##   #  #       #
+	#    # #  #  #####   #    #  #####   #    #  #    #  # #  #  #####   #
+	#    #  # #  #       #    #          #####   ######  #  # #  #       #
+	#    #   ##  #       #    #          #       #    #  #   ##  #       #
+	#    #    #  #        ####           #       #    #  #    #  ######  ######
+
+ - This is the panel that constains the Combo boxes and the TextFields 			
+*/
+    
+
+	private JPanel Upper_Panel(){
+	
+		// Creating and "configuring" the Panel
+		JPanel Panel_Combo = new JPanel();
+		GridBagLayout Layout = new GridBagLayout();
+	 	GridBagConstraints c2 = new GridBagConstraints();
+		c2.fill = GridBagConstraints.HORIZONTAL;
+		c2.insets = new Insets(10,5,5,5);
+				
+		c2.weightx=1.0;
+		
+		Panel_Combo.setLayout (Layout);
+		Panel_Combo.setFont(new Font("Dialog", Font.PLAIN, 12));
+		
+
+		// Setting border and background
+		Panel_Combo.setBorder(BorderFactory.createLineBorder(Color.black));
+		Panel_Combo.setBackground(Color.lightGray);
+
+
+			// SubRoute
+		// Adding the JLabel "SubRoute" 
+		JLabel SubRouteLabel = new JLabel("SubRoute");
+		SubRouteLabel.setForeground(Color.black);
+		Layout.setConstraints(SubRouteLabel,c2);
+		Panel_Combo.add(SubRouteLabel);
+
+		// Adding a JTextField SubRoute
+		JTextField JTF_SubRoute = new JTextField(20);
+		JTF_SubRoute.setBackground(Color.white);
+		Layout.setConstraints(JTF_SubRoute,c2);
+		Panel_Combo.add(JTF_SubRoute);
+		JTF_SubRoute.setText(SubRouteStr);
+		JTF_SubRoute.setDisabledTextColor(Color.black);
+		JTF_SubRoute.setEnabled(false);
+		
+	
+			// Project		
+		// Adding the JLabel "Project"
+		JLabel ProjectLabel = new JLabel(" Project");
+		ProjectLabel.setForeground(Color.black);
+		Layout.setConstraints(ProjectLabel,c2);		
+		Panel_Combo.add(ProjectLabel);
+						
+		// Adding the JTextField Project
+		JTextField JTF_Project = new JTextField(20);
+		JTF_Project.setBackground(Color.white);
+		Layout.setConstraints(JTF_Project,c2);		
+		Panel_Combo.add(JTF_Project);
+		JTF_Project.setText("00" + ProjectStr + "0");
+		JTF_Project.setDisabledTextColor(Color.black);
+		JTF_Project.setEnabled(false);
+		
+	
+			// Wires						// Wires {{
+		// Adding the JLabel "Wires"
+		JLabel WiresLabel = new JLabel(" Wires");
+		WiresLabel.setForeground(Color.black);
+		Layout.setConstraints(WiresLabel,c2);		
+		Panel_Combo.add(WiresLabel);		
+		
+		c2.gridwidth = GridBagConstraints.REMAINDER;
+		
+		// Adding the JTextField Wires
+		JTF_Wires = new JTextField(20);
+		JTF_Wires.setBackground(Color.white);
+		Layout.setConstraints(JTF_Wires,c2);
+		Panel_Combo.add(JTF_Wires);					// }} Wires
+		JTF_Wires.setDisabledTextColor(Color.black);
+		JTF_Wires.setEnabled(false);		
+
+		c2.gridwidth = 1;
+		c2.insets = new Insets(5,5,10,5);
+
+			// PW Effect
+		// Adding the JLabel "PW Effect"
+		JLabel ComboLabel = new JLabel("PW Effect");
+		ComboLabel.setForeground(Color.black);
+		Layout.setConstraints(ComboLabel,c2);
+		Panel_Combo.add(ComboLabel);
+
+		// Adding the PwEffectCombo of "PW Effect"
+		PwEffectCombo = new JComboBox();
+
+
+		
+		if (data_provider==DATA_FROM_DATABASE)
+	 	  db.fillCBox (PwEffectCombo,
+			"SELECT DISTINCT C.Name, C.Lower, C.Upper, E.ID " 			+
+			"FROM Collection C, Model M, Project P, Airplane A," 			+
+			" BaseAirplane BA, AirplGroup AG, Effectivity E," 			+
+			" SubRoute SR, effecSubRoute effSR," 					+
+			" SRpWire srpw, effpWire EpW " 						+
+			"WHERE P.ID=" + ProjectStr + " AND BA.prID=P.ID AND M.baID=BA.ID" 	+
+			" AND A.mID=M.ID AND AG.aID=A.ID AND C.ID=AG.cID" 			+
+			" AND SR.Name='" + SubRouteStr + "' AND effSR.srID=SR.ID AND" 		+
+			" srpw.srID=effSR.ID AND EpW.ID=srpw.epwID AND" 			+
+			" Epw.effID=E.ID AND E.ID=C.ID " 					+
+			"ORDER BY C.Lower, C.Upper");
+
+		// Code for filling the combobox with the EffectivityStr var			
+		if (data_provider==DATA_FROM_THE_FILE) PwEffectCombo.addItem(EffectivityStr);
+
+		
+		PwEffectCombo.addActionListener(new ActionListener () {
+				public void actionPerformed (ActionEvent e)
+				{
+					DBAcc newdb = new DBAcc (_utils);
+					//Refreshing the BundleCombo Combobox
+					// The BundleCombo refreshes also the Table and the number of wires
+					
+					BundleCombo.removeAllItems();
+					String effname = new String(PwEffectCombo.getSelectedItem().toString());
+					if (data_provider==DATA_FROM_DATABASE)
+					
+					
+					
+					  newdb.fillComboBox (BundleCombo,
+							"SELECT DISTINCT B.Name, B.id " +
+							"FROM Collection C, Bundle B," +
+							" SubRoute SR, effecSubRoute effSR," +
+							" SRpWire srpw, effpWire EpW, Effectivity E " +
+							"WHERE" +
+							" SR.Name='" + SubRouteStr + "' AND effSR.srID=SR.ID" +
+							" AND srpw.srID=effSR.ID AND EpW.ID=srpw.epwID AND " +
+							" EpW.effID=E.ID AND E.ID=C.ID AND C.NAME='" + effname.trim() + "' AND EpW.bID=B.ID " +
+							"ORDER BY B.ID");				
+					if (data_provider==DATA_FROM_THE_FILE) BundleCombo.addItem(PartnameStr);
+					//BundleCombo.addItem("Ultimo");	//Esta linha prova que o problema provem do resultSet
+					
+				 } } );
+		
+		Layout.setConstraints(PwEffectCombo,c2);
+		Panel_Combo.add(PwEffectCombo);
+
+
+		
+			// Bundle
+		// Adding the Jlabel "Bundle"
+		JLabel BundleLabel = new JLabel(" Bundle");
+		BundleLabel.setForeground(Color.black);
+		Layout.setConstraints(BundleLabel,c2);
+		Panel_Combo.add(BundleLabel);
+		
+		String effname = new String(PwEffectCombo.getSelectedItem().toString());
+		
+		BundleCombo = new JComboBox();
+		if (data_provider==DATA_FROM_DATABASE)
+		  db.fillComboBox (BundleCombo,
+				"SELECT DISTINCT B.Name, B.id " +
+				"FROM Collection C, Bundle B," +
+				" SubRoute SR, effecSubRoute effSR," +
+				" SRpWire srpw, effpWire EpW, Effectivity E " +
+				"WHERE" +
+				" SR.Name='" + SubRouteStr + "' AND effSR.srID=SR.ID" +
+				" AND srpw.srID=effSR.ID AND EpW.ID=srpw.epwID AND " +
+				" EpW.effID=E.ID AND E.ID=C.ID AND C.NAME='" + effname.trim() + "' AND EpW.bID=B.ID " +
+				"ORDER BY B.ID");				
+		if (data_provider==DATA_FROM_THE_FILE) BundleCombo.addItem(PartnameStr);
+		
+		BundleCombo.addActionListener(new ActionListener () {
+				public void actionPerformed (ActionEvent e)
+				{
+					// Look if the BundleCombo has something in it
+					if (BundleCombo.getSelectedIndex()==-1) { 
+						//System.out.println("Elements queue is empty!!");
+						return;
+					}
+					
+					// Refreshing the table
+					SelectData();
+					dbTable.repaint();
+					
+					// Refreshing the number of wires
+					Integer RowCount = new Integer(dbTable.getRowCount());
+					String RowCountStr = new String(RowCount.toString());
+					JTF_Wires.setText(RowCountStr);
+				 } } );
+		
+		
+		
+
+		Layout.setConstraints(BundleCombo,c2);
+		Panel_Combo.add(BundleCombo);				 
+		
+		
+		return Panel_Combo;
+	}
+	
+
+	
+
+/*	#    #  ######  #    #  #    #   ####
+	##  ##  #       ##   #  #    #  #
+	# ## #  #####   # #  #  #    #   ####
+	#    #  #       #  # #  #    #       #
+	#    #  #       #   ##  #    #  #    #
+	#    #  ######  #    #   ####    ####		*/
+	
+	protected void Menus() {
+		JMenuBar rootMenu = new JMenuBar();
+		JMenu file	= buildFileMenu(); 
+		JMenu edit	= buildEditMenu();
+		JMenu options	= buildOptionsMenu();
+		JMenu help	= buildHelpMenu();
+		
+		rootMenu.add(file);
+		rootMenu.add(edit);
+		rootMenu.add(options);
+		rootMenu.add(help);
+		
+		setJMenuBar(rootMenu);
+	
+	
+	}
+	
+	
+	protected JMenu buildFileMenu() {
+		JMenu file = new JMenu("File");
+		file.setMnemonic ('F');
+		
+		JMenuItem NewItem 	= new JMenuItem("New");
+		JMenuItem OpenItem	= new JMenuItem("Open");
+		JMenuItem CloseItem	= new JMenuItem("Close");
+		JMenuItem SaveItem	= new JMenuItem("Save");		
+		JMenuItem PrintSetItem	= new JMenuItem("Print Settings");
+		JMenuItem PrintItem	= new JMenuItem("Print");		
+		JMenuItem QuitItem	= new JMenuItem("Quit");
+		
+			// -- Listeners --
+			
+		QuitItem.addActionListener(new ActionListener() {
+			public void actionPerformed (ActionEvent e)
+			{    quit();     } } );
+		
+		file.add(NewItem);
+		  NewItem.setEnabled(false);
+		file.add(OpenItem);
+		  OpenItem.setEnabled(false);
+		file.add(CloseItem);
+		file.add(new JSeparator());
+		file.add(SaveItem);
+		  SaveItem.setEnabled(false);
+		file.add(new JSeparator());
+		file.add(PrintSetItem);
+		file.add(PrintItem);
+		file.add(new JSeparator());
+		file.add(QuitItem);
+		
+		return file;
+		
+	} // protected JMenu buildFileMenu()
+	
+	
+	protected JMenu buildEditMenu(){
+		JMenu edit = new JMenu("Edit");
+		edit.setMnemonic('E');
+		
+		JMenuItem UndoItem	= new JMenuItem("Undo");
+		JMenuItem RedoItem	= new JMenuItem("Redo");
+		JMenuItem CutItem	= new JMenuItem("Cut");
+		JMenuItem CopyItem	= new JMenuItem("Copy");
+		JMenuItem PasteItem	= new JMenuItem("Paste");
+		JMenuItem DeleteItem	= new JMenuItem("Delete");
+		
+		edit.add(UndoItem);
+		  UndoItem.setEnabled(false);
+		edit.add(RedoItem);
+		  RedoItem.setEnabled(false);
+		edit.add(new JSeparator());
+		edit.add(CutItem);
+		  CutItem.setEnabled(false);
+		edit.add(CopyItem);
+		  CopyItem.setEnabled(false);
+		edit.add(PasteItem);
+		  PasteItem.setEnabled(false);
+		edit.add(DeleteItem);	
+		  DeleteItem.setEnabled(false);
+	
+		return edit;	
+	}
+	
+	
+	protected JMenu buildOptionsMenu(){
+		JMenu options = new JMenu("Options");
+		
+		JMenuItem PreferencesItem = new JMenu("Preferences");
+		JMenuItem HightlightItem = new JMenu("Hightlight");
+		
+		options.add(PreferencesItem);
+		options.add(HightlightItem);
+		
+		return options;
+	
+	} // protected JMenu buildOptionsMenu()
+	
+	
+	
+	protected JMenu buildHelpMenu() {
+		JMenu help = new JMenu("Help");
+		
+		JMenuItem IntroItem	= new JMenuItem("Introduction");
+		JMenuItem RefItem	= new JMenuItem("Reference");
+		JMenuItem OnItem	= new JMenuItem("On Item");
+		JMenuItem AboutItem	= new JMenuItem("About Aes");
+		
+		help.add(IntroItem); 
+		help.add(RefItem);
+		help.add(OnItem);
+		help.add(new JSeparator());
+		help.add(AboutItem);
+
+		
+		return help;
+	
+	} // protected JMenu buildHelpMenu()
+	
+	
+	
+/*	  #####     ##     #####    ##
+	  #    #   #  #      #     #  #
+	  #    #  #    #     #    #    #
+	  #    #  ######     #    ######
+	  #    #  #    #     #    #    #
+	  #####   #    #     #    #    #	*/
+	  
+        public void SelectData() {
+		db.table.setColumnTitle(_utils.resHeaderFabrication);
+
+		String EffecName = new String(PwEffectCombo.getSelectedItem().toString());
+		String Bundle = new String(BundleCombo.getSelectedItem().toString().trim());
+
+		String CModel = new String("/prdb/electric/cabling/" + Bundle);
+				
+		db.table.select("SELECT DISTINCT EpW.ID, lW.Name, pW.Name, B.Name, F1.Name, P1.Name, " +
+				"P2.Name, F2.Name, EpW.chDate, EpW.manufacturerLength, EpW.Status, " +
+				"EpW.Remark " +
+				
+				"FROM Collection C, effpWire EpW, SubRoute sr, CADModel cad," +
+				" Effectivity E, Bundle B, effecSubRoute R," +
+				" pWire pW, efflWire ElW, lWire lW, lTerminal P1," +
+				" lTerminal P2, Fin F1, Fin F2, SrpWire srpw " +
+				
+				"WHERE E.ID=C.ID AND C.Name='" + EffecName.trim() + "'" + 
+				" AND EpW.effID=E.ID" 					+
+				" AND EpW.ID=srpw.epwID" 				+ 
+				" AND R.ID=srpw.SRID" 					+
+				" AND EpW.leftltID=P1.ID" 				+ 
+				" AND EpW.rightltID=P2.ID" 				+
+				" AND P1.fID=F1.ID AND P2.fID=F2.ID AND EpW.efflwID=ElW.ID" +
+				" AND ElW.lwID=lW.ID AND EpW.pwID=pW.ID AND B.ID=EpW.bID" +
+				" AND B.Name='" + Bundle + "' AND R.srID=sr.ID AND sr.Name='" + SubRouteStr + "'" + 
+				" AND cad.Filename='" + CModel + "'" +
+				" AND cad.ID=R.mID AND R.effID=C.ID " +
+				
+				"ORDER BY B.Name, pW.Name ",_utils.resHeaderFabrication);
+		
+                db.table.initColumnSizes (dbTable);	
+	}
+	
+
+
+/*
+	 #####   ####    ####   #       #####     ##    #####
+	   #    #    #  #    #  #       #    #   #  #   #    #
+	   #    #    #  #    #  #       #####   #    #  #    #
+	   #    #    #  #    #  #       #    #  ######  #####
+	   #    #    #  #    #  #       #    #  #    #  #   #
+	   #     ####    ####   ######  #####   #    #  #    #
+*/    
+	private JPanel addToolBar()
+	{
+
+		JPanel Panel_ToolBar = new JPanel ();	
+		GridBagLayout Bar_Layout=new GridBagLayout();		
+		Panel_ToolBar.setLayout (Bar_Layout);
+		GridBagConstraints c=new GridBagConstraints();								
+		
+		c.fill = GridBagConstraints.HORIZONTAL;			
+		c.insets = new Insets (0,0,0,0);								
+		c.weightx =1.0;			
+		
+							
+		Panel_ToolBar.setBackground(Color.lightGray);	
+		
+				
+		// Create the toolbar
+		
+		FabricationToolBar= new JToolBar();		
+		FabricationToolBar.setFloatable (false);
+		
+		// Call addTool Function
+		
+		addTool(FabricationToolBar,"Close Window","Close",true,ToolClose);
+		addTool(FabricationToolBar,"Show Detail Info.","ShowInf",true,ToolShowInf);
+		addTool(FabricationToolBar,"Open Browser View","browserView",true,ToolBrowser);
+		addTool(FabricationToolBar,"Hightlight Component","HighlightComp",true,ToolHightlight);
+		addTool(FabricationToolBar,"Print Current View","Print",true,ToolPrint);
+		addTool(FabricationToolBar,"Show Preferences for this Window","Preferences",true,ToolPreferences);
+		addTool(FabricationToolBar,"Open Context Help","Help",true,ToolHelp);						
+		
+		Bar_Layout.setConstraints(FabricationToolBar,c);		
+		FabricationToolBar.putClientProperty ("JToolBar.isRolover",Boolean.FALSE);
+		Bar_Layout.setConstraints(FabricationToolBar,c);
+		Panel_ToolBar.add(FabricationToolBar);		
+		return Panel_ToolBar;
+		
+		
+	}
+	// Add item to toolbar
+
+
+
+	// Add item to toolbar
+	private void addTool(JToolBar toolBar,String ToolTip, String name, boolean enable,ActionListener listener)
+	{
+		JButton but = new JButton(new ImageIcon(IconDir + name + "_nc"+ ".jpg",name));
+		ImageIcon clicBut =new ImageIcon(IconDir + name + "_c.jpg",name);
+		but.setPressedIcon(clicBut);
+		but.setBorder(BorderFactory.createLineBorder(Color.lightGray));
+		toolBar.add(but);
+		but.setToolTipText(ToolTip);
+		but.setMargin(new Insets(0,0,0,0));		
+		but.setEnabled(enable);
+		but.getAccessibleContext().setAccessibleName(name);
+		but.addActionListener (listener);
+	}
+	
+	
+		
+
+
+
+
+/*	#          #     ####    #####  ######  #    #  ######  #####    ####
+	#          #    #          #    #       ##   #  #       #    #  #
+	#          #     ####      #    #####   # #  #  #####   #    #   ####
+	#          #         #     #    #       #  # #  #       #####        #
+	#          #    #    #     #    #       #   ##  #       #   #   #    #
+	######     #     ####      #    ######  #    #  ######  #    #   ####	*/
+
+
+
+
+	  // Description: This calls the physical wire information when the user clicks over 
+	 // one occurence of the displayed table. The physical wire information is another window,
+	// therefore is class too -- pWireInfo.java --
+	public void addMouseListenerInTable() {
+              MouseAdapter listMouseListener = new MouseAdapter() {	      
+        	  public void mouseClicked(MouseEvent e) {
+                      if(e.getClickCount() == 2 && dbTable.getSelectedRow() !=-1) {
+		          int Row=dbTable.getSelectedRow();
+			  String _pWireStr = new String(db.table.getValueAt(Row,1).toString());
+			  
+			  JFrame frame=new pWireInfo(ProjectStr,_pWireStr,EffectivityStr);
+                     }
+        	   }
+               };
+              dbTable.addMouseListener(listMouseListener);
+	  }
+
+
+
+
+
+	ActionListener ToolClose = new ActionListener () {
+        public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+		close();    
+	}};
+	//  DarkCode - Insert here the rest of the listeners 
+
+
+
+	ActionListener ToolShowInf = new ActionListener () {
+	public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+		
+	}};
+	
+	
+	ActionListener ToolBrowser = new ActionListener() {
+	public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+	}};
+	
+	ActionListener ToolHightlight = new ActionListener() {
+	public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+	}};
+	
+	ActionListener ToolPrint = new ActionListener() {public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+	}};
+	
+	ActionListener ToolPreferences = new ActionListener() {
+	public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+	}};
+	
+	ActionListener ToolHelp = new ActionListener() {
+	public void actionPerformed (ActionEvent e) {    
+		// Code Listener			
+	}};
+	
+
+
+
+	  //
+	 //
+	//
+	private void close()
+        {
+		setVisible(false);
+		dispose();
+        } // close
+	
+
+	
+	  //	
+	 //
+	// Exits from program
+	private void quit() {
+		//SetVisible(false);
+		dispose();
+		System.exit(0);
+	}
+	
+
+
+		
+		
+	  // Description: This function is for testing only and is to be called by the main...
+	 //  This file is not to be a standalone aplication, therefore there is not need of
+	//   an existing main(String[] args) rather then for testing.
+	static void init(String args)
+	{
+		Vector data_file=new Vector();
+
+	        extract_string strx=new extract_string(args,data_file);
+	
+	        com.sun.java.swing.plaf.metal.MetalLookAndFeel.setCurrentTheme(new com.sun.java.swing.plaf.metal.DefaultMetalTheme ());
+
+	        JFrame fabrication = new Fabrication(data_file);
+  	        fabrication.setVisible(true);
+	}
+	
+	/*static public void main(String[] argv)
+	{
+		
+		init("epd.txt1");
+	}*/
+	
+
+} // public class Fabrication extends com.sun.java.swing.JFrame

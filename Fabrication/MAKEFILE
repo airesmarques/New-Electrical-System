@@ -1,0 +1,27 @@
+CLASSFILES = Fabrication.class \
+	proEpWire.class \
+	EpWireData.class \
+	updfab.class \
+	pWireInfo.class
+
+JARFILE = Fabrication.jar
+
+#SED = sed -e "s,javax,com.sun.java,"
+SED = sed -e "s,com.sun.java,javax,"
+#SED=ed -e
+
+.SUFFIXES: .java .class
+
+all: $(JARFILE)
+
+$(JARFILE): $(CLASSFILES)
+	jar cf $(JARFILE) *.class
+	mv $(JARFILE) $(PROJECT)/java/lib/
+
+.java.class:
+	$(SED) $< > $<.java
+	javac -nowarn -classpath $(CLASSPATH):${PROJECT}/java/app/util $<.java
+	rm $<.java
+	
+clean:
+	rm *.class $(JARFILE)
