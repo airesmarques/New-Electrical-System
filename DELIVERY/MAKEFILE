@@ -1,0 +1,18 @@
+
+all: PostscriptPrint.class Print.class DAWindow.class DeliveryFrame.class\
+	 Delivery.class
+
+PostscriptPrint.class: PostscriptPrint.java
+	javac PostscriptPrint.java
+
+Print.class: Print.java
+	javac Print.java
+
+DAWindow.class: DAWindow.java
+	javac -nowarn -classpath $(CLASSPATH):${PROJECT}/java/lib:${PROJECT}/java/lib/resources DAWindow.java
+
+DeliveryFrame.class: DeliveryFrame.java
+	javac -nowarn -classpath $(CLASSPATH):${PROJECT}/java/lib:${PROJECT}/java/lib/resources DeliveryFrame.java
+
+Delivery.class: Delivery.java
+	javac Delivery.java

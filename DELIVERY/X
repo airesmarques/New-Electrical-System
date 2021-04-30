@@ -1,0 +1,4 @@
+#! /usr/bin/ksh
+
+java -classpath $CLASSPATH:${PROJECT}/java/lib/:${PROJECT}/java/lib/resources:${PROJECT}/java/lib/DAutil Delivery
+
